@@ -1,0 +1,80 @@
+- hosts: localhost
+  vars_prompt:
+  - name: hostname
+    prompt: "Enter the hostname in FQDN format"
+    private: no
+
+  - name: conn_name
+    prompt: "Enter the network interface name"
+    private: no
+
+  - name: ip4
+    prompt: "Enter the IP address"
+    private: no
+
+  - name: prefix
+    prompt: "Enter the prefix mask"
+    private: no
+
+  - name: gw4
+    prompt: "Enter the gateway address"
+    private: no
+
+  - name: dns4
+    prompt: "Enter the DNS server address"
+    private: no
+
+  - name: ntpserver
+    prompt: "Enter the ntp server address"
+    private: no
+
+  tasks:
+  - name: expand primary hard drive
+    shell: |
+      echo -e "n\n\n\n\n\nw\n" | fdisk /dev/sda
+      partprobe
+      pvcreate /dev/sda3
+      vgextend centos /dev/sda3
+      lvextend -l +100%FREE /dev/centos/root
+      xfs_growfs -d /
+    args:
+      warn: false
+
+  - name: set hostname
+    hostname:
+      name: '{{ hostname }}'
+
+  - name: set timezone to UTC
+    timezone:
+      name: UTC
+
+  - name: configure network
+    shell: |
+      echo "TYPE=Ethernet" > /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "DEVICE='{{ conn_name }}'" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "NAME='{{ conn_name }}'" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "BOOTPROTO=none" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "ONBOOT=yes" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "IPADDR='{{ ip4 }}'" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "PREFIX='{{ prefix }}'" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "GATEWAY='{{ gw4 }}'" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "nameserver '{{ dns4 }}'" > /etc/resolv.conf
+    args:
+      warn: false
+
+  - name: set ntp server
+    shell: |
+      sed -i 's/0.centos.pool.ntp.org iburst/'{{ ntpserver }}' iburst/g' /etc/chrony.conf
+      sed -i 's/server 1.centos.pool.ntp.org iburst//g' /etc/chrony.conf
+      sed -i 's/server 2.centos.pool.ntp.org iburst//g' /etc/chrony.conf
+      sed -i 's/server 3.centos.pool.ntp.org iburst//g' /etc/chrony.conf
+      chronyc makestep
+      systemctl restart chronyd
+    args:
+      warn: false
+
+  - name: Please wait. Rebooting system...
+    shell: |
+      sleep 5; init 6
+    args:
+      warn: false

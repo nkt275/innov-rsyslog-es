@@ -1,0 +1,74 @@
+version: '3'
+
+services:
+  rsyslog-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.1.1
+    container_name: rsyslog-elasticsearch
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+      - ./rsyslog-elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+    environment:
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    restart: always
+    networks:
+      priv:
+        ipv4_address: 172.18.0.2
+  rsyslog-logstash:
+    image: docker.elastic.co/logstash/logstash:7.1.1 
+    container_name: rsyslog-logstash
+    volumes:
+    - ./rsyslog-logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
+    - ./rsyslog-logstash/pipeline/10-rsyslog.conf:/usr/share/logstash/pipeline/logstash.conf
+    environment:
+      - "LS_JAVA_OPTS=-Xms2g -Xmx2g"
+    restart: always
+    depends_on:
+      - rsyslog-elasticsearch
+    networks:
+      priv:
+        ipv4_address: 172.18.0.3
+  rsyslog-kibana:
+    image: docker.elastic.co/kibana/kibana:7.1.1
+    container_name: rsyslog-kibana
+    volumes:
+    - ./rsyslog-kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+    - ./rsyslog-kibana/dashboards:/usr/share/kibana/dashboards
+    - ./rsyslog-kibana/scripts:/usr/share/kibana/scripts
+    entrypoint: /usr/share/kibana/scripts/kibana-entrypoint.sh
+    restart: always
+    depends_on:
+      - rsyslog-logstash
+    networks:
+      priv:
+        ipv4_address: 172.18.0.4
+  rsyslog-nginx:
+    image: nginx:1.16.0 
+    container_name: rsyslog-nginx
+    volumes:
+    - ./rsyslog-nginx/default.conf:/etc/nginx/conf.d/default.conf
+    - ./rsyslog-nginx/htpasswd.users:/etc/nginx/htpasswd.users
+    - ./rsyslog-nginx/nginx-selfsigned.crt:/etc/nginx/nginx-selfsigned.crt
+    - ./rsyslog-nginx/nginx-selfsigned.key:/etc/nginx/nginx-selfsigned.key
+    ports:
+      - "443:443"
+    restart: always
+    depends_on:
+    - rsyslog-kibana
+    networks:
+      priv:
+        ipv4_address: 172.18.0.5
+networks:
+  priv:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 172.18.0.0/24
+volumes:
+  esdata:
+    driver: local
