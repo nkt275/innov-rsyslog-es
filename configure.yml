@@ -50,15 +50,15 @@
 
   - name: configure network
     shell: |
-      echo "TYPE=Ethernet" > /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
-      echo "DEVICE='{{ conn_name }}'" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
-      echo "NAME='{{ conn_name }}'" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "TYPE=ethernet" > /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "DEVICE={{ conn_name }}" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "NAME={{ conn_name }}" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
       echo "BOOTPROTO=none" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
       echo "ONBOOT=yes" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
-      echo "IPADDR='{{ ip4 }}'" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
-      echo "PREFIX='{{ prefix }}'" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
-      echo "GATEWAY='{{ gw4 }}'" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
-      echo "nameserver '{{ dns4 }}'" > /etc/resolv.conf
+      echo "IPADDR={{ ip4 }}" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "PREFIX={{ prefix }}" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "GATEWAY={{ gw4 }}" >> /etc/sysconfig/network-scripts/ifcfg-'{{ conn_name }}'
+      echo "nameserver {{ dns4 }}" > /etc/resolv.conf
     args:
       warn: false
 
